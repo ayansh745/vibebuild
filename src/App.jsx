@@ -4,6 +4,8 @@ import {
   ArrowUpRight,
   DownloadSimple,
   MagicWand,
+  X,
+  Eye,
 } from "@phosphor-icons/react";
 
 import { saveAs } from "file-saver";
@@ -16,6 +18,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [generatedZip, setGeneratedZip] = useState(null);
   const [completed, setCompleted] = useState(false);
+  const [previewHTML, setPreviewHTML] = useState(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleGenerate = async () => {
     if (!prompt) return;
@@ -23,15 +27,23 @@ export default function App() {
     try {
       setLoading(true);
       setCompleted(false);
+      setShowPreview(false);
 
-      const zipBlob = await generateWebsite(prompt);
+      const result = await generateWebsite(prompt);
 
-      setGeneratedZip(zipBlob);
-
+      setGeneratedZip(result.blob);
+      setPreviewHTML(result.previewHTML);
       setCompleted(true);
+      setShowPreview(true);
+
+      // Auto-download the zip
+      setTimeout(() => {
+        saveAs(result.blob, `website-${Date.now()}.zip`);
+      }, 500);
 
     } catch (error) {
       console.error(error);
+      alert("Error generating website. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -39,8 +51,7 @@ export default function App() {
 
   const handleDownload = () => {
     if (!generatedZip) return;
-
-    saveAs(generatedZip, "website.zip");
+    saveAs(generatedZip, `website-${Date.now()}.zip`);
   };
 
   return (
@@ -189,6 +200,20 @@ export default function App() {
                 {/* Actions */}
                 <div className="flex items-center gap-4">
 
+                  {/* Preview */}
+                  {completed && (
+                    <button
+                      onClick={() => setShowPreview(true)}
+                      className="group px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-all duration-300 flex items-center gap-2"
+                    >
+                      <Eye
+                        size={22}
+                        className="group-hover:scale-110 transition-transform"
+                      />
+                      <span className="hidden sm:inline text-sm">Preview</span>
+                    </button>
+                  )}
+
                   {/* Generate */}
                   <button
                     onClick={handleGenerate}
@@ -201,7 +226,7 @@ export default function App() {
                       {loading
                         ? "Generating..."
                         : completed
-                        ? "Generated"
+                        ? "Generate Again"
                         : "Generate Website"}
 
                       <ArrowUpRight
@@ -218,6 +243,7 @@ export default function App() {
                     <button
                       onClick={handleDownload}
                       className="group px-5 py-4 rounded-2xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] transition-all duration-300"
+                      title="Re-download project"
                     >
                       <DownloadSimple
                         size={22}
@@ -255,6 +281,73 @@ export default function App() {
         </div>
 
       </main>
+
+      {/* Preview Modal */}
+      {showPreview && previewHTML && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-6xl h-[90vh] flex flex-col rounded-3xl border border-white/20 bg-black shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.03]">
+              <div className="flex items-center gap-3">
+                <Eye size={20} className="text-violet-400" />
+                <div>
+                  <h3 className="text-lg font-semibold">Website Preview</h3>
+                  <p className="text-xs text-zinc-500">Press Escape or click X to close</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowPreview(false)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Preview Content */}
+            <div className="flex-1 overflow-auto bg-white">
+              <iframe
+                srcDoc={previewHTML}
+                className="w-full h-full border-none"
+                title="Website Preview"
+                sandbox="allow-same-origin allow-scripts"
+              />
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-white/10 bg-white/[0.03] flex items-center justify-between">
+              <p className="text-sm text-zinc-400">
+                ✨ Your AI-generated website is ready! Download the full MERN stack project.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDownload}
+                  className="px-6 py-2 rounded-lg bg-gradient-to-r from-violet-500 to-cyan-500 text-white font-semibold hover:scale-105 transition-transform"
+                >
+                  Download Project
+                </button>
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className="px-6 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close preview on Escape key */}
+      {showPreview && (
+        <script>{`
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              window.dispatchEvent(new CustomEvent('closePreview'));
+            }
+          });
+        `}</script>
+      )}
     </div>
   );
 }
