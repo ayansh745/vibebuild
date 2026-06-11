@@ -106,7 +106,7 @@ app.post('/api/generate-website', async (req, res) => {
           ],
           generationConfig: {
             temperature: 0.8,
-            maxOutputTokens: 8000,
+            maxOutputTokens: 16000,
           },
         }),
       }

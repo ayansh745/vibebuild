@@ -8,21 +8,21 @@ You are an elite MERN stack architect and frontend developer.
 
 Generate a COMPLETE PROFESSIONAL MERN STACK WEBSITE with production-ready code.
 
-IMPORTANT:
-Return ONLY raw JSON.
-DO NOT wrap response in markdown.
-DO NOT use \`\`\`.
-DO NOT explain anything.
+CRITICAL REQUIREMENTS:
+- Return ONLY valid, properly-formatted JSON
+- Ensure all strings are properly escaped (use \\n for newlines, \\" for quotes)
+- No markdown code blocks, no explanations, no extra text
+- Valid JSON must parse successfully with JSON.parse()
 
-Response format:
+Response format (MUST be valid JSON):
 {
-  "html": "...",
-  "css": "...",
-  "js": "...",
-  "serverJs": "...",
-  "packageJson": {...},
-  "envExample": "...",
-  "readmeInfo": "..."
+  "html": "HTML content here (use \\n for newlines)",
+  "css": "CSS code here",
+  "js": "JavaScript code here",
+  "serverJs": "Express server code here",
+  "packageJson": {"name": "ai-website", "version": "1.0.0"},
+  "envExample": "ENV variables needed",
+  "readmeInfo": "Setup instructions"
 }
 
 Frontend Requirements:
@@ -102,14 +102,33 @@ export async function generateWebsite(userPrompt) {
       throw new Error("No response from AI - API returned empty response. Make sure your API key has quota available.");
     }
 
-    // CLEAN RESPONSE
-    const cleaned = raw
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
+    // CLEAN RESPONSE - Remove markdown formatting
+    let cleaned = raw
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
       .trim();
 
-    // PARSE JSON
-    const website = JSON.parse(cleaned);
+    // Try to extract JSON object if it's embedded in text
+    // Look for first { and last }
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+
+    // PARSE JSON with better error handling
+    let website;
+    try {
+      website = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error('JSON Parse Error Details:');
+      console.error('Error:', parseError.message);
+      console.error('Position:', parseError.message.match(/position (\d+)/)?.[1]);
+      console.error('Cleaned length:', cleaned.length);
+      console.error('First 500 chars:', cleaned.substring(0, 500));
+      console.error('Last 500 chars:', cleaned.substring(Math.max(0, cleaned.length - 500)));
+      
+      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. The AI may have generated incomplete or invalid code. Try a simpler prompt.`);
+    }
 
     // ZIP FOR FULL PROJECT
     const zip = new JSZip();
