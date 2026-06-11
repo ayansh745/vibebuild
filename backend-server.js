@@ -1,8 +1,15 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load environment variables from .env.local or .env
+dotenv.config({ path: join(__dirname, '.env.local') });
+dotenv.config({ path: join(__dirname, '.env') });
 
 const app = express();
 app.use(cors());
@@ -11,7 +18,9 @@ app.use(express.json());
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
-  throw new Error('GEMINI_API_KEY environment variable is not set');
+  console.error('ERROR: GEMINI_API_KEY environment variable is not set');
+  console.error('Please create a .env.local file with: GEMINI_API_KEY=your_key_here');
+  process.exit(1);
 }
 
 // Proxy endpoint for Gemini API

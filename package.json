@@ -3,18 +3,19 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
- 
   "scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "server": "node backend-server.js",
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist"
-},
+    "dev": "vite",
+    "build": "vite build",
+    "server": "node backend-server.js",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.3.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "file-saver": "^2.0.5",
     "jszip": "^3.10.1",
     "react": "^19.2.6",

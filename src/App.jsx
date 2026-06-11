@@ -43,7 +43,8 @@ export default function App() {
 
     } catch (error) {
       console.error(error);
-      alert("Error generating website. Please try again.");
+      const message = error.message || "Error generating website. Please make sure the backend server is running (npm run server)";
+      alert(message);
     } finally {
       setLoading(false);
     }
