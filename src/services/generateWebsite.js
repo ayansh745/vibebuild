@@ -1,10 +1,7 @@
 import JSZip from "jszip";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-if (!apiKey) {
-  throw new Error('VITE_GEMINI_API_KEY environment variable is not set. Please create a .env file with your API key.');
-}
+// Get the backend URL from environment or default to localhost
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 const SYSTEM_PROMPT = `
 You are an elite MERN stack architect and frontend developer.
@@ -65,9 +62,9 @@ MUST INCLUDE:
 export async function generateWebsite(userPrompt) {
   try {
 
-    // API CALL
+    // API CALL TO BACKEND PROXY
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`,
+      `${BACKEND_URL}/api/generate-website`,
       {
         method: "POST",
 
@@ -76,20 +73,8 @@ export async function generateWebsite(userPrompt) {
         },
 
         body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `${SYSTEM_PROMPT}\n\n${userPrompt}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.8,
-            maxOutputTokens: 8000,
-          },
+          userPrompt,
+          systemPrompt: SYSTEM_PROMPT,
         }),
       }
     );
