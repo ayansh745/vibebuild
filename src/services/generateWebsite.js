@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
-// Get the backend URL from environment or default to localhost
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+// Use relative path for API calls - Vite dev server will proxy to backend
+const BACKEND_URL = '/api';
 
 const SYSTEM_PROMPT = `
 You are an elite MERN stack architect and frontend developer.
@@ -64,7 +64,7 @@ export async function generateWebsite(userPrompt) {
 
     // API CALL TO BACKEND PROXY
     const response = await fetch(
-      `${BACKEND_URL}/api/generate-website`,
+      `${BACKEND_URL}/generate-website`,
       {
         method: "POST",
 
@@ -78,6 +78,11 @@ export async function generateWebsite(userPrompt) {
         }),
       }
     );
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Backend error (${response.status}): ${errorData || response.statusText}`);
+    }
 
     const data = await response.json();
 
