@@ -80,20 +80,26 @@ export async function generateWebsite(userPrompt) {
     );
 
     if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`Backend error (${response.status}): ${errorData || response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.error || `Server error (${response.status})`;
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
 
     console.log(data);
 
+    // Check if response has error field (from Gemini)
+    if (data.error) {
+      throw new Error(`API Error: ${data.error}`);
+    }
+
     // RAW AI RESPONSE
     const raw =
       data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!raw) {
-      throw new Error("No response from AI");
+      throw new Error("No response from AI - API returned empty response. Make sure your API key has quota available.");
     }
 
     // CLEAN RESPONSE

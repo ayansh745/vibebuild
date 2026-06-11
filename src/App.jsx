@@ -43,7 +43,15 @@ export default function App() {
 
     } catch (error) {
       console.error(error);
-      const message = error.message || "Error generating website. Please make sure the backend server is running (npm run server)";
+      let message = error.message || "Error generating website. Please try again.";
+      
+      // Better error messages for common issues
+      if (message.includes('quota')) {
+        message = "⚠️ API quota exceeded. Please enable billing on your Google Cloud project to continue.";
+      } else if (message.includes('network') || message.includes('Failed to fetch')) {
+        message = "❌ Could not reach the backend server. Make sure it's running (npm run server).";
+      }
+      
       alert(message);
     } finally {
       setLoading(false);

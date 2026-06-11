@@ -59,10 +59,28 @@ app.post('/api/generate-website', async (req, res) => {
     );
 
     const data = await response.json();
+
+    // Check if Gemini API returned an error
+    if (data.error) {
+      console.error('Gemini API Error:', data.error);
+      
+      // Check for quota errors
+      if (data.error.code === 429 || data.error.status === 'RESOURCE_EXHAUSTED') {
+        return res.status(429).json({ 
+          error: 'API quota exceeded. Please enable billing on your Google Cloud project or try again later.' 
+        });
+      }
+      
+      // Return other API errors
+      return res.status(data.error.code || 500).json({ 
+        error: `API Error: ${data.error.message}` 
+      });
+    }
+
     res.json(data);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Failed to generate website' });
+    console.error('Backend Error:', error);
+    res.status(500).json({ error: `Failed to generate website: ${error.message}` });
   }
 });
 
