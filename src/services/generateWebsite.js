@@ -6,58 +6,47 @@ const BACKEND_URL = '/api';
 const SYSTEM_PROMPT = `
 You are an elite MERN stack architect and frontend developer.
 
-Generate a COMPLETE PROFESSIONAL MERN STACK WEBSITE with production-ready code.
+CRITICAL: Generate VALID JSON ONLY. No extra text, no markdown, no explanations.
 
-CRITICAL REQUIREMENTS:
-- Return ONLY valid, properly-formatted JSON
-- Ensure all strings are properly escaped (use \\n for newlines, \\" for quotes)
-- No markdown code blocks, no explanations, no extra text
-- Valid JSON must parse successfully with JSON.parse()
-
-Response format (MUST be valid JSON):
+Return ONLY this JSON structure (keep code in strings SIMPLE and SHORT):
 {
-  "html": "HTML content here (use \\n for newlines)",
-  "css": "CSS code here",
-  "js": "JavaScript code here",
-  "serverJs": "Express server code here",
-  "packageJson": {"name": "ai-website", "version": "1.0.0"},
-  "envExample": "ENV variables needed",
-  "readmeInfo": "Setup instructions"
+  "html": "<div>HTML here with no unescaped quotes</div>",
+  "css": "body { margin: 0; }",
+  "js": "console.log('Hello');",
+  "serverJs": "import express from 'express';\\nconst app = express();",
+  "packageJson": {"name": "website", "version": "1.0.0", "dependencies": {}},
+  "envExample": "BACKEND_URL=http://localhost:5000",
+  "readmeInfo": "# Setup\\nInstall and run"
 }
 
-Frontend Requirements:
-- Modern, professional UI with glassmorphism
-- Beautiful gradients and animations
-- Fully responsive design
-- Smooth transitions
-- Real-world component patterns
-- Proper form validation
-- Loading states and error handling
-
-Backend Requirements (Node.js/Express):
-- RESTful API with proper route structure
-- Error handling middleware
-- CORS configuration
-- Environment variables setup
-- Database-ready structure
-- Proper folder structure
-
-Website Type Guidelines:
-- SaaS: Dashboard, pricing tables, CTAs, team section
-- Portfolio: Project showcase, skills, testimonials, contact
-- Startup: Hero, features, pricing, FAQs, newsletter signup
-- Agency: Services, portfolio, team, testimonials, contact
-- E-commerce: Product showcase, cart simulation, reviews
-
-MUST INCLUDE:
-1. Production-grade HTML (semantic, accessible)
-2. Advanced CSS (animations, transitions, responsive grid)
-3. Modern JavaScript (fetch API, event handling, form validation)
-4. Express.js server code with API endpoints
-5. package.json with all dependencies
-6. Environment variables template
-7. Professional readme with setup instructions
+Keep it simple - focus on the structure, not verbose code.
 `;
+
+// Helper function to safely parse JSON with error recovery
+function attemptJsonParse(jsonString) {
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    // Try to fix common issues
+    let fixed = jsonString;
+    
+    // Handle unescaped newlines within string values
+    // Match patterns like: "key": "value with
+    // newline" and escape them
+    fixed = fixed.replace(/":\s*"([^"]*\n[^"]*)/g, (match) => {
+      return match.replace(/\n/g, '\\n');
+    });
+    
+    // Handle unescaped backslashes before quotes
+    fixed = fixed.replace(/([^\\])(\\{0})"/g, '$1\\"');
+    
+    try {
+      return JSON.parse(fixed);
+    } catch (e2) {
+      throw new Error(`JSON repair failed: ${e.message}`);
+    }
+  }
+}
 
 export async function generateWebsite(userPrompt) {
   try {
@@ -106,28 +95,22 @@ export async function generateWebsite(userPrompt) {
     let cleaned = raw
       .replace(/```json\n?/g, "")
       .replace(/```\n?/g, "")
+      .replace(/^[\s\S]*?\{/, "{")  // Remove any text before first {
+      .replace(/\}[\s\S]*$/, "}")   // Remove any text after last }
       .trim();
 
-    // Try to extract JSON object if it's embedded in text
-    // Look for first { and last }
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      cleaned = jsonMatch[0];
-    }
-
-    // PARSE JSON with better error handling
+    // PARSE JSON with recovery
     let website;
     try {
-      website = JSON.parse(cleaned);
+      website = attemptJsonParse(cleaned);
     } catch (parseError) {
       console.error('JSON Parse Error Details:');
       console.error('Error:', parseError.message);
-      console.error('Position:', parseError.message.match(/position (\d+)/)?.[1]);
       console.error('Cleaned length:', cleaned.length);
-      console.error('First 500 chars:', cleaned.substring(0, 500));
-      console.error('Last 500 chars:', cleaned.substring(Math.max(0, cleaned.length - 500)));
+      console.error('First 300 chars:', cleaned.substring(0, 300));
+      console.error('Last 300 chars:', cleaned.substring(Math.max(0, cleaned.length - 300)));
       
-      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. The AI may have generated incomplete or invalid code. Try a simpler prompt.`);
+      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}. Try a different or simpler prompt.`);
     }
 
     // ZIP FOR FULL PROJECT
