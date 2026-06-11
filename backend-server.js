@@ -23,6 +23,60 @@ if (!GEMINI_API_KEY) {
   process.exit(1);
 }
 
+// Retry logic for handling temporary API failures (503, "high demand" errors)
+const fetchWithRetry = async (url, options, maxRetries = 3) => {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      const data = await response.json();
+      
+      // If no error in response, return it
+      if (!data.error) {
+        return data;
+      }
+      
+      // Check if it's a retriable error (503, high demand, rate limit)
+      const isRetriable = 
+        response.status === 503 || 
+        data.error.status === 'RESOURCE_EXHAUSTED' ||
+        data.error.code === 503 ||
+        (data.error.message && data.error.message.includes('currently experiencing high demand'));
+      
+      if (!isRetriable) {
+        // Not retriable, return the error immediately
+        return data;
+      }
+      
+      lastError = data;
+      
+      // If this was the last attempt, return the error
+      if (attempt === maxRetries) {
+        return data;
+      }
+      
+      // Exponential backoff: 1s, 3s, 5s between retries
+      const delayMs = (attempt * 2 - 1) * 1000;
+      console.log(`Attempt ${attempt} failed with high demand error. Retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      const delayMs = (attempt * 2 - 1) * 1000;
+      console.log(`Attempt ${attempt} network error. Retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  
+  throw lastError;
+};
+
 // Proxy endpoint for Gemini API
 app.post('/api/generate-website', async (req, res) => {
   try {
@@ -32,7 +86,7 @@ app.post('/api/generate-website', async (req, res) => {
       return res.status(400).json({ error: 'userPrompt is required' });
     }
 
-    const response = await fetch(
+    const data = await fetchWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: 'POST',
@@ -57,8 +111,6 @@ app.post('/api/generate-website', async (req, res) => {
         }),
       }
     );
-
-    const data = await response.json();
 
     // Check if Gemini API returned an error
     if (data.error) {
