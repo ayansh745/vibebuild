@@ -1,5 +1,4 @@
 import JSZip from "jszip";
-import { GoogleAuth } from "google-auth-library";
 
 const SYSTEM_PROMPT = `
 You are an expert frontend developer.
@@ -26,41 +25,15 @@ Rules:
 
 export async function generateWebsite(userPrompt) {
   try {
-    const auth = new GoogleAuth({
-      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    // Call backend proxy which handles authentication and Generative API calls
+    const response = await fetch('/api/generate-website', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userPrompt,
+        systemPrompt: SYSTEM_PROMPT,
+      }),
     });
-    const client = await auth.getClient();
-    const accessTokenResponse = await client.getAccessToken();
-    const token = accessTokenResponse?.token || accessTokenResponse;
-
-    const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `${SYSTEM_PROMPT}
-
-USER REQUEST:
-${userPrompt}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.8,
-            responseMimeType: "application/json",
-          },
-        }),
-      }
-    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -69,8 +42,12 @@ ${userPrompt}`,
 
     const data = await response.json();
 
-    const raw =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText);
+    }
+
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!raw) {
       throw new Error("Gemini returned empty response");

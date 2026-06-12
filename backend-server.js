@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { GoogleAuth } from 'google-auth-library';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,13 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-if (!GEMINI_API_KEY) {
-  console.error('ERROR: GEMINI_API_KEY environment variable is not set');
-  console.error('Please create a .env.local file with: GEMINI_API_KEY=your_key_here');
-  process.exit(1);
-}
+// The backend uses Google Application Default Credentials (ADC).
+// Ensure `GOOGLE_APPLICATION_CREDENTIALS` is set to a service account JSON
+// or run `gcloud auth application-default login` for development.
 
 // Retry logic for handling temporary API failures (503, "high demand" errors)
 const fetchWithRetry = async (url, options, maxRetries = 3) => {
@@ -85,21 +82,28 @@ app.post('/api/generate-website', async (req, res) => {
     if (!userPrompt) {
       return res.status(400).json({ error: 'userPrompt is required' });
     }
+    // Obtain ADC token
+    const auth = new GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+    });
+    const client = await auth.getClient();
+    const accessTokenResponse = await client.getAccessToken();
+    const token = accessTokenResponse?.token || accessTokenResponse;
 
     const data = await fetchWithRetry(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           contents: [
             {
-              role: 'user',
               parts: [
                 {
-                  text: `${systemPrompt}\n\n${userPrompt}`,
+                  text: `${systemPrompt || ''}\n\n${userPrompt}`,
                 },
               ],
             },
