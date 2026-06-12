@@ -16,9 +16,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// The backend uses Google Application Default Credentials (ADC).
-// Ensure `GOOGLE_APPLICATION_CREDENTIALS` is set to a service account JSON
-// or run `gcloud auth application-default login` for development.
+// The backend supports an API key via GEMINI_API_KEY.
+// If no API key is set, it falls back to Google Application Default Credentials (ADC).
+// For local development, add GEMINI_API_KEY to .env.local.
 
 // Retry logic for handling temporary API failures (503, "high demand" errors)
 const fetchWithRetry = async (url, options, maxRetries = 3) => {
@@ -82,22 +82,30 @@ app.post('/api/generate-website', async (req, res) => {
     if (!userPrompt) {
       return res.status(400).json({ error: 'userPrompt is required' });
     }
-    // Obtain ADC token
-    const auth = new GoogleAuth({
-      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    });
-    const client = await auth.getClient();
-    const accessTokenResponse = await client.getAccessToken();
-    const token = accessTokenResponse?.token || accessTokenResponse;
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    let headers = {
+      'Content-Type': 'application/json',
+    };
+    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
+
+    if (apiKey) {
+      url += `?key=${encodeURIComponent(apiKey)}`;
+    } else {
+      const auth = new GoogleAuth({
+        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      });
+      const client = await auth.getClient();
+      const accessTokenResponse = await client.getAccessToken();
+      const token = accessTokenResponse?.token || accessTokenResponse;
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     const data = await fetchWithRetry(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent',
+      url,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           contents: [
             {

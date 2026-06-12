@@ -56,8 +56,8 @@ Create a `.env.local` file:
 #
 #    gcloud auth application-default login
 #
-# Option C: (NOT recommended) API key will NOT work for the Generative Language `generateContent` method
-# If you have other API usages, you can store API keys here, but the service below uses OAuth2 tokens.
+# Option C: API key is supported for this backend proxy endpoint.
+# Add GEMINI_API_KEY to `.env.local` for direct API key auth.
 PORT=5000
 
 # Frontend Configuration
@@ -65,7 +65,11 @@ VITE_BACKEND_URL=http://localhost:5000
 ```
 
 ### Note on credentials
-The app now uses Google Application Default Credentials (ADC). Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON file or run `gcloud auth application-default login` locally. Do NOT commit credential files to the repo.
+The backend now supports direct API key auth with `GEMINI_API_KEY`, so a service account JSON is not required for local development.
+
+If `GEMINI_API_KEY` is missing, the server will fall back to Google Application Default Credentials (ADC). Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON file or run `gcloud auth application-default login` only if you need ADC.
+
+Do NOT commit credential files to the repo.
 
 Get your API key from: https://aistudio.google.com/apikey
 
