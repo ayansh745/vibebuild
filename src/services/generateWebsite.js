@@ -1,6 +1,5 @@
 import JSZip from "jszip";
-
-const API_KEY = "AQ.Ab8RN6IIr2Mm_LUflCgUsj_Y0j1wYmEytCZuM79u5eD7uBu1-w";
+import { GoogleAuth } from "google-auth-library";
 
 const SYSTEM_PROMPT = `
 You are an expert frontend developer.
@@ -27,12 +26,20 @@ Rules:
 
 export async function generateWebsite(userPrompt) {
   try {
+    const auth = new GoogleAuth({
+      scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+    });
+    const client = await auth.getClient();
+    const accessTokenResponse = await client.getAccessToken();
+    const token = accessTokenResponse?.token || accessTokenResponse;
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`,
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           contents: [
