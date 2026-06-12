@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { GoogleAuth } from 'google-auth-library';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,9 +15,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// The backend supports an API key via GEMINI_API_KEY.
-// If no API key is set, it falls back to Google Application Default Credentials (ADC).
-// For local development, add GEMINI_API_KEY to .env.local.
+// The backend uses an API key via GEMINI_API_KEY only.
+// Add GEMINI_API_KEY to .env.local for local development.
 
 // Retry logic for handling temporary API failures (503, "high demand" errors)
 const fetchWithRetry = async (url, options, maxRetries = 3) => {
@@ -84,22 +82,16 @@ app.post('/api/generate-website', async (req, res) => {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-    let headers = {
+    if (!apiKey) {
+      return res.status(500).json({
+        error: 'GEMINI_API_KEY is required. Add it to .env.local and restart the server.',
+      });
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const headers = {
       'Content-Type': 'application/json',
     };
-    let url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
-
-    if (apiKey) {
-      url += `?key=${encodeURIComponent(apiKey)}`;
-    } else {
-      const auth = new GoogleAuth({
-        scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      });
-      const client = await auth.getClient();
-      const accessTokenResponse = await client.getAccessToken();
-      const token = accessTokenResponse?.token || accessTokenResponse;
-      headers.Authorization = `Bearer ${token}`;
-    }
 
     const data = await fetchWithRetry(
       url,

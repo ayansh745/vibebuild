@@ -45,18 +45,7 @@ npm install
 
 Create a `.env.local` file:
 ```bash
-# Backend Configuration (Preferred: use a service account)
-# Option A: Application Default Credentials (recommended)
-# 1. Create a Google Cloud service account with the "Cloud API" / Generative Language permissions
-# 2. Download the JSON key and set:
-#
-#    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
-#
-# Option B: gcloud user credentials (dev only)
-#
-#    gcloud auth application-default login
-#
-# Option C: API key is supported for this backend proxy endpoint.
+# Backend Configuration
 # Add GEMINI_API_KEY to `.env.local` for direct API key auth.
 PORT=5000
 
@@ -65,9 +54,7 @@ VITE_BACKEND_URL=http://localhost:5000
 ```
 
 ### Note on credentials
-The backend now supports direct API key auth with `GEMINI_API_KEY`, so a service account JSON is not required for local development.
-
-If `GEMINI_API_KEY` is missing, the server will fall back to Google Application Default Credentials (ADC). Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON file or run `gcloud auth application-default login` only if you need ADC.
+The backend requires `GEMINI_API_KEY` for local development. Add it to `.env.local` and restart the server.
 
 Do NOT commit credential files to the repo.
 

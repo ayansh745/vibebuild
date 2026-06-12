@@ -53,13 +53,49 @@ export async function generateWebsite(userPrompt) {
       throw new Error("Gemini returned empty response");
     }
 
+    const extractJSON = (text) => {
+      const cleaned = text
+        .trim()
+        .replace(/^```json\s*/i, "")
+        .replace(/```$/, "")
+        .trim();
+
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const firstObject = cleaned.indexOf("{");
+        const lastObject = cleaned.lastIndexOf("}");
+        if (firstObject !== -1 && lastObject !== -1 && firstObject < lastObject) {
+          const candidate = cleaned.slice(firstObject, lastObject + 1);
+          try {
+            return JSON.parse(candidate);
+          } catch {
+            // continue to fallback
+          }
+        }
+
+        const firstArray = cleaned.indexOf("[");
+        const lastArray = cleaned.lastIndexOf("]");
+        if (firstArray !== -1 && lastArray !== -1 && firstArray < lastArray) {
+          const candidate = cleaned.slice(firstArray, lastArray + 1);
+          try {
+            return JSON.parse(candidate);
+          } catch {
+            // continue to fallback
+          }
+        }
+
+        throw new Error("Invalid JSON returned by Gemini");
+      }
+    };
+
     let website;
 
     try {
-      website = JSON.parse(raw);
+      website = extractJSON(raw);
     } catch (err) {
-      console.error(raw);
-      throw new Error("Invalid JSON returned by Gemini");
+      console.error("Gemini raw response:", raw);
+      throw err;
     }
 
     if (!website.html) {
