@@ -45,13 +45,27 @@ npm install
 
 Create a `.env.local` file:
 ```bash
-# Backend Configuration
-GEMINI_API_KEY=your_api_key_here
+# Backend Configuration (Preferred: use a service account)
+# Option A: Application Default Credentials (recommended)
+# 1. Create a Google Cloud service account with the "Cloud API" / Generative Language permissions
+# 2. Download the JSON key and set:
+#
+#    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+#
+# Option B: gcloud user credentials (dev only)
+#
+#    gcloud auth application-default login
+#
+# Option C: (NOT recommended) API key will NOT work for the Generative Language `generateContent` method
+# If you have other API usages, you can store API keys here, but the service below uses OAuth2 tokens.
 PORT=5000
 
 # Frontend Configuration
 VITE_BACKEND_URL=http://localhost:5000
 ```
+
+### Note on credentials
+The app now uses Google Application Default Credentials (ADC). Set `GOOGLE_APPLICATION_CREDENTIALS` to a service account JSON file or run `gcloud auth application-default login` locally. Do NOT commit credential files to the repo.
 
 Get your API key from: https://aistudio.google.com/apikey
 
